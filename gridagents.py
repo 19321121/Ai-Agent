@@ -115,8 +115,7 @@ class GridAgent(GridObject):
           # use appropriate search to explore the space.
           
           # default action is just a random move in some direction.
-          GridObject.__setattr__(self,"_currentAction",Action(self, Action.move, None, round(numpy.random.uniform(-0.49999,3.5))))
-          return self._currentAction
+          return self._depthFirstExploration(world,x,y)
 
     
       # TODO
@@ -124,13 +123,69 @@ class GridAgent(GridObject):
       # a depth-first exploration should proceed as far as it can, by choosing a direction at each point
       # where a decision is possible, then 'backtracking' once no further choices are available, back
       # to the last point where a choice was possible.
-      def _depthFirstExploration(self, world, x, y):
-           # FIXME build the map, indexed by (origin)(destination) pairs
-           self._map[(x,y)] = {}
-           self._map[(x,y)][(x+1,y+1)] = {}
-           # FIXME obviously this does nothing
-           GridObject.__setattr__(self,"_currentAction",Action(self, Action.inaction, None, -1))
-           return self._currentAction
+      def _depthFirstExploration(self,world,x,y):
+         current=(x,y)
+
+         if current in self._frontier:
+            self._frontier.remove(current)
+
+         if current not in self._map:
+            self._map[current]={}
+
+         directions=[world.North,world.East,world.South,world.West]
+
+         for direction in directions:
+            location=world.getLocation(x,y)
+
+            if location.canGo(direction):
+               if direction==world.North:
+                  target=(x,y-1)
+               elif direction==world.East:
+                  target=(x+1,y)
+               elif direction==world.South:
+                  target=(x,y+1)
+               else:
+                  target=(x-1,y)
+
+               self._map[current][target]=1
+
+               if target not in self._map and self._inFrontier(target) is None:
+                  self._frontier.append(target)
+
+         for target in self._map[current]:
+            if target not in self._map:
+               self._backtrack.append(current)
+               direction=self._getDirection(target)
+
+               GridObject.__setattr__(
+                  self,
+                  "_currentAction",
+                  Action(self,Action.move,None,direction)
+               )
+
+               return self._currentAction
+
+         if self._frontier and self._backtrack:
+            target=self._backtrack.pop()
+            direction=self._getDirection(target)
+
+            GridObject.__setattr__(
+               self,
+               "_currentAction",
+               Action(self,Action.move,None,direction)
+            )
+
+            return self._currentAction
+
+         self._pruneMap()
+
+         GridObject.__setattr__(
+            self,
+            "_currentAction",
+            Action(self,Action.inaction,None,-1)
+         )
+
+         return self._currentAction
 
       # TODO
       # prune the map to get rid of uninteresting 'corridor' points where no turns are allowed
