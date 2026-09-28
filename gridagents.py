@@ -190,10 +190,36 @@ class GridAgent(GridObject):
       # TODO
       # prune the map to get rid of uninteresting 'corridor' points where no turns are allowed
       def _pruneMap(self):
-          locsToDelete = [] # list of map locations that can be pruned
-          # FIXME this just exits
-          while self._frontier is not None:
-                self._frontier = None
+         changed=True
+
+         while changed:
+            changed=False
+
+         for location in list(self._map.keys()):
+            neighbours=list(self._map[location].keys())
+
+            if len(neighbours)!=2:
+               continue
+
+            first=neighbours[0]
+            second=neighbours[1]
+
+            if first==second:
+               continue
+
+            distance1=self._map[location][first]
+            distance2=self._map[location][second]
+
+            self._map[first].pop(location,None)
+            self._map[second].pop(location,None)
+
+            self._map[first][second]=distance1+distance2
+            self._map[second][first]=distance1+distance2
+
+            del self._map[location]
+
+            changed=True
+            break
     
       # convenience function allows us to extract the direction to a target location
       def _getDirection(self, target):
